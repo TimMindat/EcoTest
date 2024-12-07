@@ -13,8 +13,9 @@ export function Signup() {
     e.preventDefault();
     try {
       await signup(email, password, name);
-      navigate('/verify-email');
+      navigate('/');
     } catch (err) {
+      // Error is handled by the AuthContext and displayed in the form
       console.error('Signup error:', err);
     }
   };

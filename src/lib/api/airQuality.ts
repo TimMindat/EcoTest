@@ -1,92 +1,103 @@
 import axios from 'axios';
-import { format } from 'date-fns';
-import { API_CONFIG } from './config';
-import type { AirQualityData, AirQualityError } from './types/airQuality';
+import { LOCATIONS, DEFAULT_LOCATION } from '../config/locations';
+import { AirQualityData, PollutantData } from '../types/airQuality';
+import { POLLUTANT_LIMITS } from '../constants/pollutants';
 
-const openWeatherApi = axios.create({
-  baseURL: API_CONFIG.OPENWEATHER_BASE_URL,
-  params: {
-    appid: API_CONFIG.OPENWEATHER_API_KEY,
-  },
-  timeout: 10000,
+const OPENWEATHER_API_KEY = 'bd5e378503939ddaee76f12ad7a97608';
+const API_TIMEOUT = 10000; // 10 seconds
+
+const api = axios.create({
+  timeout: API_TIMEOUT,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
 export async function getAirQualityData(
-  lat = API_CONFIG.DEFAULT_LOCATION.lat,
-  lon = API_CONFIG.DEFAULT_LOCATION.lon
-): Promise<AirQualityData> {
+  location = DEFAULT_LOCATION
+): Promise<AirQualityData | null> {
   try {
-    const [airPollution, weather] = await Promise.all([
-      openWeatherApi.get('/air_pollution', { params: { lat, lon } }),
-      openWeatherApi.get('/weather', { params: { lat, lon, units: 'metric' } })
-    ]);
-
-    if (!airPollution.data?.list?.[0] || !weather.data) {
-      throw new Error('Invalid API response format');
-    }
-
-    const pollutionData = airPollution.data.list[0];
-    const weatherData = weather.data;
-
-    return {
-      city: API_CONFIG.DEFAULT_LOCATION.city,
-      country: API_CONFIG.DEFAULT_LOCATION.country,
-      location: {
-        lat,
-        lon
-      },
-      current: {
-        timestamp: format(new Date(pollutionData.dt * 1000), "yyyy-MM-dd'T'HH:mm:ssXXX"),
-        temperature: {
-          celsius: Math.round(weatherData.main.temp * 10) / 10,
-          fahrenheit: Math.round((weatherData.main.temp * 9/5 + 32) * 10) / 10
-        },
-        humidity: weatherData.main.humidity,
-        wind: {
-          speed: {
-            ms: weatherData.wind.speed,
-            mph: Math.round(weatherData.wind.speed * 2.237 * 10) / 10
-          },
-          direction: weatherData.wind.deg
-        },
-        aqi: pollutionData.main.aqi,
-        pollutants: {
-          co: pollutionData.components.co,
-          no: pollutionData.components.no,
-          no2: pollutionData.components.no2,
-          o3: pollutionData.components.o3,
-          so2: pollutionData.components.so2,
-          pm2_5: pollutionData.components.pm2_5,
-          pm10: pollutionData.components.pm10,
-          nh3: pollutionData.components.nh3
-        }
-      }
-    };
-  } catch (error: any) {
-    console.error('Air quality API error:', error.response || error);
-    const apiError: AirQualityError = {
-      code: error.response?.data?.cod || error.code || 'UNKNOWN_ERROR',
-      message: error.response?.data?.message || error.message || 'Failed to fetch air quality data'
-    };
-    throw apiError;
+    const { lat, lon } = location.coordinates;
+    const response = await api.get<AirQualityData>(
+      `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}`
+    );
+    
+    return validateAndTransformData(response.data);
+  } catch (error) {
+    handleApiError(error);
+    return null;
   }
 }
 
-export function validateAirQualityData(data: AirQualityData): boolean {
-  if (!data || !data.current) return false;
+function validateAndTransformData(data: any): AirQualityData | null {
+  if (!data || !data.list || !data.list[0]) {
+    console.error('Invalid API response structure');
+    return null;
+  }
 
-  const now = new Date();
-  const dataTime = new Date(data.current.timestamp);
+  const measurement = data.list[0];
   
-  // Check if data is from within the cache time
-  const isRecent = now.getTime() - dataTime.getTime() <= API_CONFIG.CACHE_TIME;
+  // Validate required fields
+  if (!measurement.main?.aqi || !measurement.components) {
+    console.error('Missing required fields in API response');
+    return null;
+  }
 
-  // Check if essential data is present and valid
-  const hasValidData = (
-    data.current.aqi > 0 &&
-    data.current.temperature.celsius !== 0 &&
-    data.city && data.country
-  );
+  // Validate and transform pollutant data
+  const components = validatePollutants(measurement.components);
+  if (!components) {
+    return null;
+  }
 
-  return isRecent && hasValidData;
+  return {
+    list: [{
+      main: {
+        aqi: Number(measurement.main.aqi)
+      },
+      components,
+      dt: measurement.dt
+    }],
+    coord: {
+      lat: data.coord?.lat ?? DEFAULT_LOCATION.coordinates.lat,
+      lon: data.coord?.lon ?? DEFAULT_LOCATION.coordinates.lon
+    }
+  };
+}
+
+function validatePollutants(components: any): PollutantData | null {
+  const validatedComponents: PollutantData = {};
+  
+  for (const [key, limit] of Object.entries(POLLUTANT_LIMITS)) {
+    const value = components[key];
+    
+    // Handle missing or invalid values
+    if (typeof value !== 'number' || isNaN(value)) {
+      validatedComponents[key] = 0;
+      continue;
+    }
+
+    // Validate range
+    if (value < 0) {
+      validatedComponents[key] = 0;
+    } else if (value > limit.max * 2) { // Allow up to 2x the limit for extreme cases
+      validatedComponents[key] = limit.max * 2;
+    } else {
+      validatedComponents[key] = value;
+    }
+  }
+
+  return validatedComponents;
+}
+
+function handleApiError(error: any) {
+  if (axios.isAxiosError(error)) {
+    if (error.code === 'ECONNABORTED') {
+      console.error('API request timed out');
+    } else if (error.response) {
+      console.error('API error response:', error.response.status, error.response.data);
+    } else if (error.request) {
+      console.error('No API response received');
+    }
+  }
+  console.error('Air quality API error:', error);
 }

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
 import { auth } from '../lib/firebase/index';
-import { signUp, signIn, signInWithGoogle, logout, resetPassword, AuthError } from '../lib/firebase/auth';
+import { signUp, signIn, signInWithGoogle, logOut, resetPassword, AuthError } from '../lib/firebase/auth';
 import { setSessionCookie, clearSessionCookie } from '../lib/auth/session';
 
 interface AuthContextType {
@@ -70,10 +70,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const handleLogout = async () => {
+  const logout = async () => {
     try {
       setError(null);
-      await logout();
+      await logOut();
       clearSessionCookie();
     } catch (err) {
       const authError = err as AuthError;
@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signup,
     login,
     loginWithGoogle,
-    logout: handleLogout,
+    logout,
     resetPassword: handleResetPassword,
     clearError
   };

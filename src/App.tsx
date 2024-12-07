@@ -8,7 +8,7 @@ import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { Profile } from './pages/Profile';
 import { ForgotPassword } from './pages/ForgotPassword';
-import { EmailVerification } from './pages/EmailVerification';
+import { AirQuality } from './pages/AirQuality';
 import { Navbar } from './components/Navbar';
 import { MobileBottomNav } from './components/navigation/MobileBottomNav';
 import { AuthProvider } from './contexts/AuthContext';
@@ -25,10 +25,10 @@ function AppRoutes() {
       <Route path="/about" element={<About />} />
       <Route path="/team" element={<Team />} />
       <Route path="/features" element={<Features />} />
+      <Route path="/air-quality" element={<AirQuality />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/verify-email" element={<EmailVerification />} />
       <Route 
         path="/profile" 
         element={

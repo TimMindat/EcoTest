@@ -9,7 +9,6 @@ import {
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from './index';
 import { signInWithGoogle } from './auth/google';
-import { sendVerificationEmail } from './auth/verification';
 
 export interface AuthError {
   code: string;
@@ -28,11 +27,8 @@ export async function signUp(email: string, password: string, name: string): Pro
         email,
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
-        provider: 'email',
-        emailVerified: false
+        provider: 'email'
       });
-
-      await sendVerificationEmail(userCredential.user);
     }
 
     return userCredential;
@@ -73,7 +69,7 @@ export async function resetPassword(email: string): Promise<void> {
   }
 }
 
-export async function logout(): Promise<void> {
+export async function logOut(): Promise<void> {
   try {
     await signOut(auth);
   } catch (error: any) {
