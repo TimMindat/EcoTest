@@ -8,11 +8,15 @@ export function useHistoricalData(startDate: Date, endDate: Date) {
     {
       revalidateOnFocus: false,
       dedupingInterval: 60000, // 1 minute
+      refreshInterval: 300000, // 5 minutes
     }
   );
 
   return {
-    data,
+    data: data?.map(point => ({
+      ...point,
+      timestamp: new Date(point.timestamp).getTime() // Ensure timestamp is in milliseconds
+    })) || [],
     error,
     isLoading,
     refetch: mutate
