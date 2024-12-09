@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapPin, Search, X, ChevronDown } from 'lucide-react';
+import { MapPin, Search, X, ChevronDown, Navigation2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EGYPT_GOVERNORATES } from '../../lib/constants/locations';
+import { useGeolocation } from '../../lib/hooks/useGeolocation';
 import type { Location } from '../../lib/types/location';
 
 interface LocationSelectorProps {
@@ -13,6 +14,7 @@ export function LocationSelector({ selectedLocation, onLocationChange }: Locatio
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { location: currentLocation, loading: geoLoading, error: geoError } = useGeolocation();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -28,6 +30,12 @@ export function LocationSelector({ selectedLocation, onLocationChange }: Locatio
   const filteredLocations = EGYPT_GOVERNORATES.filter(location =>
     location.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleCurrentLocationSelect = () => {
+    onLocationChange(currentLocation);
+    setIsOpen(false);
+    setSearchQuery('');
+  };
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -69,6 +77,25 @@ export function LocationSelector({ selectedLocation, onLocationChange }: Locatio
               </div>
 
               <div className="max-h-64 overflow-y-auto">
+                <button
+                  onClick={handleCurrentLocationSelect}
+                  disabled={geoLoading || !!geoError}
+                  className="w-full flex items-center space-x-3 px-3 py-2 hover:bg-gray-50 rounded-md text-left mb-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Navigation2 className="h-5 w-5 text-green-600" />
+                  <div>
+                    <span className="text-gray-900">Current Location</span>
+                    {geoLoading && (
+                      <span className="text-sm text-gray-500 block">Detecting...</span>
+                    )}
+                    {geoError && (
+                      <span className="text-sm text-red-500 block">Location unavailable</span>
+                    )}
+                  </div>
+                </button>
+
+                <div className="border-t border-gray-100 my-2"></div>
+
                 {filteredLocations.map((location) => (
                   <button
                     key={`${location.coordinates.lat}-${location.coordinates.lon}`}
