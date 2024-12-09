@@ -29,30 +29,6 @@ export async function getAirQualityData(
   }
 }
 
-export async function getHistoricalData(startDate: Date, endDate: Date): Promise<any[]> {
-  try {
-    const { lat, lon } = DEFAULT_LOCATION.coordinates;
-    const start = Math.floor(startDate.getTime() / 1000);
-    const end = Math.floor(endDate.getTime() / 1000);
-
-    const response = await api.get(
-      `https://api.openweathermap.org/data/2.5/air_pollution/history?lat=${lat}&lon=${lon}&start=${start}&end=${end}&appid=${OPENWEATHER_API_KEY}`
-    );
-
-    if (!response.data || !response.data.list) {
-      return [];
-    }
-
-    return response.data.list.map((item: any) => ({
-      timestamp: item.dt * 1000, // Convert to milliseconds
-      components: validatePollutants(item.components)
-    }));
-  } catch (error) {
-    handleApiError(error);
-    return [];
-  }
-}
-
 function validateAndTransformData(data: any): AirQualityData | null {
   if (!data || !data.list || !data.list[0]) {
     console.error('Invalid API response structure');

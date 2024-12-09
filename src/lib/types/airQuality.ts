@@ -31,8 +31,3 @@ export interface AirQualityStatus {
   textColor: string;
   percentage: number;
 }
-
-export interface HistoricalDataPoint {
-  timestamp: number;
-  components: PollutantData;
-}
