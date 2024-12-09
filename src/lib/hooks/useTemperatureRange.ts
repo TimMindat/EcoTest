@@ -1,38 +1,75 @@
 import { useEffect, useState } from 'react';
-import { useWeather } from './useWeather';
+import { getTemperatureRange } from '../api/weather';
+import { TemperatureRange } from '../types/weather';
 import { validateTemperature } from '../utils/temperature';
 
-interface TemperatureRange {
-  min: number;
-  max: number;
-  isValid: boolean;
+interface TemperatureState {
+  range: TemperatureRange;
+  error: string | null;
+  isLoading: boolean;
 }
 
-export function useTemperatureRange() {
-  const { data, error, isLoading } = useWeather();
-  const [range, setRange] = useState<TemperatureRange>({
-    min: 0,
-    max: 0,
+const initialState: TemperatureState = {
+  range: {
+    high: 0,
+    low: 0,
     isValid: false
-  });
+  },
+  error: null,
+  isLoading: true
+};
+
+export function useTemperatureRange() {
+  const [state, setState] = useState<TemperatureState>(initialState);
 
   useEffect(() => {
-    if (data?.main) {
-      const { temp_min, temp_max } = data.main;
-      const isMinValid = validateTemperature(temp_min);
-      const isMaxValid = validateTemperature(temp_max);
+    let mounted = true;
 
-      setRange({
-        min: temp_min,
-        max: temp_max,
-        isValid: isMinValid && isMaxValid && temp_min <= temp_max
-      });
+    async function fetchTemperatureRange() {
+      try {
+        const data = await getTemperatureRange();
+        
+        if (!mounted) return;
+
+        if (data?.forecast?.forecastday[0]) {
+          const { maxtemp_c, mintemp_c } = data.forecast.forecastday[0].day;
+          
+          const isHighValid = validateTemperature(maxtemp_c);
+          const isLowValid = validateTemperature(mintemp_c);
+
+          setState({
+            range: {
+              high: maxtemp_c,
+              low: mintemp_c,
+              isValid: isHighValid && isLowValid && maxtemp_c >= mintemp_c
+            },
+            error: null,
+            isLoading: false
+          });
+        } else {
+          setState(prev => ({
+            ...prev,
+            error: 'Invalid temperature data received',
+            isLoading: false
+          }));
+        }
+      } catch (err) {
+        if (!mounted) return;
+        
+        setState(prev => ({
+          ...prev,
+          error: err instanceof Error ? err.message : 'Failed to fetch temperature range',
+          isLoading: false
+        }));
+      }
     }
-  }, [data]);
 
-  return {
-    range,
-    isLoading,
-    error
-  };
+    fetchTemperatureRange();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return state;
 }

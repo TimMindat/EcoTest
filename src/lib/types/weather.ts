@@ -21,6 +21,24 @@ export interface WeatherData {
   name: string;
 }
 
+export interface WeatherAPIForecast {
+  forecast: {
+    forecastday: Array<{
+      date: string;
+      day: {
+        maxtemp_c: number;
+        mintemp_c: number;
+      };
+    }>;
+  };
+}
+
+export interface TemperatureRange {
+  high: number;
+  low: number;
+  isValid: boolean;
+}
+
 export interface WeatherCardProps {
   className?: string;
 }

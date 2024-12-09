@@ -1,12 +1,23 @@
 import React from 'react';
+import { AlertCircle } from 'lucide-react';
 import { TemperatureDisplay } from './TemperatureDisplay';
 
 interface TemperatureRangeProps {
   min: number;
   max: number;
+  isValid: boolean;
 }
 
-export function TemperatureRange({ min, max }: TemperatureRangeProps) {
+export function TemperatureRange({ min, max, isValid }: TemperatureRangeProps) {
+  if (!isValid) {
+    return (
+      <div className="flex items-center text-gray-500">
+        <AlertCircle className="h-4 w-4 mr-2" />
+        <span>Temperature range unavailable</span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center space-x-4">
       <div>

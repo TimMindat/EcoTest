@@ -1,16 +1,20 @@
 import React from 'react';
 import { Cloud, AlertCircle, RefreshCw } from 'lucide-react';
 import { useWeather } from '../../lib/hooks/useWeather';
+import { useTemperatureRange } from '../../lib/hooks/useTemperatureRange';
 import { TemperatureDisplay } from './TemperatureDisplay';
 import { TemperatureRange } from './TemperatureRange';
 import { WeatherDetails } from './WeatherDetails';
 import { WeatherIcon } from './WeatherIcon';
 import { CardHeader } from '../ui/CardHeader';
 import { CardFooter } from '../ui/CardFooter';
-import { formatTimestamp } from '../../lib/utils/formatting';
 
 export function WeatherCard() {
-  const { data, isLoading, error, refresh } = useWeather();
+  const { data, isLoading: isWeatherLoading, error: weatherError, refresh } = useWeather();
+  const { range, isLoading: isRangeLoading, error: rangeError } = useTemperatureRange();
+
+  const isLoading = isWeatherLoading || isRangeLoading;
+  const error = weatherError || rangeError;
 
   if (error) {
     return (
@@ -44,7 +48,7 @@ export function WeatherCard() {
   }
 
   const weatherInfo = data.weather[0];
-  const { temp, temp_min, temp_max, humidity, pressure, feels_like } = data.main;
+  const { humidity, pressure, feels_like } = data.main;
   const { speed: windSpeed } = data.wind;
 
   return (
@@ -64,7 +68,7 @@ export function WeatherCard() {
           />
           <div>
             <TemperatureDisplay
-              value={temp}
+              value={data.main.temp}
               size="lg"
             />
             <div className="text-gray-600 capitalize">
@@ -74,8 +78,9 @@ export function WeatherCard() {
         </div>
         
         <TemperatureRange
-          min={temp_min}
-          max={temp_max}
+          min={range.low}
+          max={range.high}
+          isValid={range.isValid}
         />
       </div>
 
