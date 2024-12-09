@@ -1,48 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Search, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Location } from '../../lib/types/weather';
+import { EGYPT_GOVERNORATES } from '../../lib/constants/locations';
+import type { Location } from '../../lib/types/location';
 
 interface LocationSelectorProps {
   selectedLocation: Location;
   onLocationChange: (location: Location) => void;
 }
 
-const RECENT_LOCATIONS: Location[] = [
-  {
-    name: 'Cairo',
-    coordinates: { lat: 30.0444, lon: 31.2357 }
-  },
-  {
-    name: 'Alexandria',
-    coordinates: { lat: 31.2001, lon: 29.9187 }
-  },
-  {
-    name: 'Giza',
-    coordinates: { lat: 30.0131, lon: 31.2089 }
-  }
-];
-
 export function LocationSelector({ selectedLocation, onLocationChange }: LocationSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleLocationSelect = (location: Location) => {
-    onLocationChange(location);
-    setIsOpen(false);
-    setSearchQuery('');
-  };
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
 
-  const filteredLocations = RECENT_LOCATIONS.filter(location =>
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredLocations = EGYPT_GOVERNORATES.filter(location =>
     location.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 transition-colors"
       >
+        <MapPin className="h-4 w-4" />
         <span>{selectedLocation.name}</span>
         <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
@@ -53,7 +46,7 @@ export function LocationSelector({ selectedLocation, onLocationChange }: Locatio
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute z-10 mt-2 w-72 bg-white rounded-lg shadow-lg"
+            className="absolute z-50 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200"
           >
             <div className="p-4">
               <div className="relative mb-4">
@@ -75,15 +68,19 @@ export function LocationSelector({ selectedLocation, onLocationChange }: Locatio
                 )}
               </div>
 
-              <div className="space-y-2">
+              <div className="max-h-64 overflow-y-auto">
                 {filteredLocations.map((location) => (
                   <button
                     key={`${location.coordinates.lat}-${location.coordinates.lon}`}
-                    onClick={() => handleLocationSelect(location)}
-                    className="w-full flex items-center space-x-3 px-3 py-2 hover:bg-gray-50 rounded-md"
+                    onClick={() => {
+                      onLocationChange(location);
+                      setIsOpen(false);
+                      setSearchQuery('');
+                    }}
+                    className="w-full flex items-center space-x-3 px-3 py-2 hover:bg-gray-50 rounded-md text-left"
                   >
                     <MapPin className="h-5 w-5 text-gray-400" />
-                    <span>{location.name}</span>
+                    <span className="text-gray-700">{location.name}</span>
                   </button>
                 ))}
               </div>

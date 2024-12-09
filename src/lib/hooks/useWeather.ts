@@ -1,25 +1,36 @@
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { getWeatherData } from '../api/weather';
 import { WeatherResponse } from '../types/weather';
-import { useGeolocation } from './useGeolocation';
+import { Location } from '../types/location';
+import { DEFAULT_LOCATION } from '../constants/locations';
 
-export function useWeather() {
-  const { location } = useGeolocation();
+export function useWeather(initialLocation: Location = DEFAULT_LOCATION) {
+  const [location, setLocation] = useState<Location>(initialLocation);
   
-  const { data, error, isLoading } = useSWR<WeatherResponse>(
-    ['weather', location?.coordinates],
+  useEffect(() => {
+    setLocation(initialLocation);
+  }, [initialLocation]);
+
+  const { data, error, isLoading, mutate } = useSWR<WeatherResponse>(
+    ['weather', location.coordinates.lat, location.coordinates.lon],
     () => getWeatherData(location),
     {
       refreshInterval: 300000, // 5 minutes
       revalidateOnFocus: false,
       dedupingInterval: 60000, // 1 minute
+      onError: (err) => {
+        console.error('Weather data fetch error:', err);
+      }
     }
   );
 
   return {
     data,
     location,
+    setLocation,
     isLoading,
-    error
+    error,
+    refresh: mutate
   };
 }

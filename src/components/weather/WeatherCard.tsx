@@ -2,13 +2,16 @@ import React from 'react';
 import { Cloud, Wind, Droplets, Thermometer, MapPin, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWeather } from '../../lib/hooks/useWeather';
+import { useGeolocation } from '../../lib/hooks/useGeolocation';
 import { LocationSelector } from './LocationSelector';
+import { LocationInfo } from './LocationInfo';
 import { WeatherDetails } from './WeatherDetails';
 import { TemperatureDisplay } from './TemperatureDisplay';
 import { ForecastTimeline } from './ForecastTimeline';
 
 export function WeatherCard() {
-  const { data: weather, isLoading, error, location } = useWeather();
+  const { location: geoLocation, error: geoError, loading: geoLoading } = useGeolocation();
+  const { data: weather, isLoading, error, location, setLocation } = useWeather(geoLocation);
 
   if (error) {
     return (
@@ -24,12 +27,23 @@ export function WeatherCard() {
     );
   }
 
-  if (isLoading || !weather) {
+  if (isLoading || geoLoading) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex items-center space-x-3">
           <Loader2 className="h-8 w-8 text-green-600 animate-spin flex-shrink-0" />
           <h3 className="text-xl font-bold">Loading weather data...</h3>
+        </div>
+      </div>
+    );
+  }
+
+  if (!weather) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="flex items-center space-x-3">
+          <AlertCircle className="h-8 w-8 text-yellow-600 flex-shrink-0" />
+          <h3 className="text-xl font-bold">No weather data available</h3>
         </div>
       </div>
     );
@@ -43,25 +57,24 @@ export function WeatherCard() {
           <Cloud className="h-8 w-8 text-green-600 flex-shrink-0" />
           <div>
             <h3 className="text-xl font-bold">Weather</h3>
-            <div className="flex items-center text-sm text-gray-600 mt-1">
-              <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
-              <LocationSelector 
-                selectedLocation={location}
-                onLocationChange={() => {}} // Will be implemented in the LocationSelector
-              />
-            </div>
+            <LocationInfo location={location} error={geoError} />
           </div>
         </div>
         
-        <a
-          href="https://openweathermap.org/api"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center text-sm text-green-600 hover:text-green-700 transition-colors"
-        >
-          <span>Data Source</span>
-          <ExternalLink className="h-4 w-4 ml-1" />
-        </a>
+        <div className="flex items-center space-x-4">
+          <LocationSelector 
+            selectedLocation={location}
+            onLocationChange={setLocation}
+          />
+          <a
+            href="https://www.weatherapi.com/api.aspx"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-green-600 hover:text-green-700 transition-colors"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </a>
+        </div>
       </div>
 
       {/* Current Weather */}

@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Location } from '../types/location';
-import { DEFAULT_LOCATION } from '../config/locations';
+import { DEFAULT_LOCATION } from '../constants/locations';
 
 interface GeolocationState {
-  location: Location | null;
+  location: Location;
   error: string | null;
   loading: boolean;
 }
 
 export function useGeolocation() {
   const [state, setState] = useState<GeolocationState>({
-    location: DEFAULT_LOCATION, // Initialize with default location
+    location: DEFAULT_LOCATION,
     error: null,
     loading: true
   });
@@ -60,7 +60,7 @@ export function useGeolocation() {
       },
       {
         enableHighAccuracy: true,
-        timeout: 8000, // 8 second timeout
+        timeout: 8000,
         maximumAge: 0
       }
     );
