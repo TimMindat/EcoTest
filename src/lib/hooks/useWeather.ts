@@ -1,29 +1,25 @@
-import { useEffect } from 'react';
 import useSWR from 'swr';
 import { getWeatherData } from '../api/weather';
-import { WeatherData } from '../types/weather';
+import { WeatherResponse } from '../types/weather';
+import { useGeolocation } from './useGeolocation';
 
 export function useWeather() {
-  const { data, error, isLoading, mutate } = useSWR<WeatherData | null>(
-    'weather',
-    () => getWeatherData(),
+  const { location } = useGeolocation();
+  
+  const { data, error, isLoading } = useSWR<WeatherResponse>(
+    ['weather', location?.coordinates],
+    () => getWeatherData(location),
     {
-      refreshInterval: 300000, // Refresh every 5 minutes
+      refreshInterval: 300000, // 5 minutes
       revalidateOnFocus: false,
-      dedupingInterval: 60000, // Dedupe requests within 1 minute
+      dedupingInterval: 60000, // 1 minute
     }
   );
 
-  useEffect(() => {
-    if (error) {
-      console.error('Error fetching weather data:', error);
-    }
-  }, [error]);
-
   return {
     data,
+    location,
     isLoading,
-    error,
-    refresh: mutate
+    error
   };
 }

@@ -1,44 +1,59 @@
-export interface WeatherData {
-  weather: Array<{
-    id: number;
-    main: string;
-    description: string;
-    icon: string;
-  }>;
-  main: {
-    temp: number;
-    feels_like: number;
-    temp_min: number;
-    temp_max: number;
-    pressure: number;
+export interface WeatherResponse {
+  location: {
+    name: string;
+    region: string;
+    country: string;
+    lat: number;
+    lon: number;
+    localtime: string;
+  };
+  current: {
+    temp_c: number;
+    condition: {
+      text: string;
+      icon: string;
+    };
+    wind_kph: number;
+    wind_dir: string;
+    pressure_mb: number;
+    precip_mm: number;
     humidity: number;
+    feelslike_c: number;
+    uv: number;
+    last_updated: string;
   };
-  wind: {
-    speed: number;
-    deg: number;
-  };
-  dt: number;
-  name: string;
-}
-
-export interface WeatherAPIForecast {
   forecast: {
     forecastday: Array<{
       date: string;
       day: {
         maxtemp_c: number;
         mintemp_c: number;
+        avgtemp_c: number;
+        condition: {
+          text: string;
+          icon: string;
+        };
+        daily_chance_of_rain: number;
       };
+      hour: Array<{
+        time: string;
+        temp_c: number;
+        condition: {
+          text: string;
+          icon: string;
+        };
+        wind_kph: number;
+        humidity: number;
+        feelslike_c: number;
+      }>;
     }>;
   };
 }
 
-export interface TemperatureRange {
-  high: number;
-  low: number;
-  isValid: boolean;
-}
-
-export interface WeatherCardProps {
-  className?: string;
+export interface Location {
+  name: string;
+  coordinates: {
+    lat: number;
+    lon: number;
+  };
 }

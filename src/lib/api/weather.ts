@@ -1,43 +1,32 @@
 import axios from 'axios';
-import { WeatherData, WeatherAPIForecast } from '../types/weather';
+import { WeatherResponse } from '../types/weather';
+import { Location } from '../types/location';
+import { DEFAULT_LOCATION } from '../config/locations';
 
-const OPENWEATHER_API_KEY = 'bd5e378503939ddaee76f12ad7a97608';
-const WEATHERAPI_KEY = '0f6278ac6aab4c35907220558240912';
-const API_TIMEOUT = 10000;
+const WEATHER_API_KEY = '0f6278ac6aab4c35907220558240912';
+const BASE_URL = 'https://api.weatherapi.com/v1';
 
-const api = axios.create({
-  timeout: API_TIMEOUT,
-  headers: {
-    'Content-Type': 'application/json'
+const weatherApi = axios.create({
+  baseURL: BASE_URL,
+  params: {
+    key: WEATHER_API_KEY
   }
 });
 
-export async function getWeatherData(
-  lat: number = 30.0444,
-  lon: number = 31.2357
-): Promise<WeatherData | null> {
+export async function getWeatherData(location: Location = DEFAULT_LOCATION) {
   try {
-    const response = await api.get<WeatherData>(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${OPENWEATHER_API_KEY}`
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching OpenWeatherMap data:', error);
-    return null;
-  }
-}
+    const { lat, lon } = location.coordinates;
+    const response = await weatherApi.get<WeatherResponse>('/forecast.json', {
+      params: {
+        q: `${lat},${lon}`,
+        days: 3,
+        aqi: 'yes'
+      }
+    });
 
-export async function getTemperatureRange(
-  lat: number = 30.0444,
-  lon: number = 31.2357
-): Promise<WeatherAPIForecast | null> {
-  try {
-    const response = await api.get<WeatherAPIForecast>(
-      `https://api.weatherapi.com/v1/forecast.json?key=${WEATHERAPI_KEY}&q=${lat},${lon}&days=1&aqi=no`
-    );
-    return response.data;
+    return JSON.parse(JSON.stringify(response.data));
   } catch (error) {
-    console.error('Error fetching WeatherAPI.com data:', error);
+    console.error('Error fetching weather data:', error);
     return null;
   }
 }

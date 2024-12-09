@@ -1,26 +1,20 @@
 import React from 'react';
-import { Cloud, AlertCircle, RefreshCw } from 'lucide-react';
+import { Cloud, Wind, Droplets, Thermometer, MapPin, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useWeather } from '../../lib/hooks/useWeather';
-import { useTemperatureRange } from '../../lib/hooks/useTemperatureRange';
-import { TemperatureDisplay } from './TemperatureDisplay';
-import { TemperatureRange } from './TemperatureRange';
+import { LocationSelector } from './LocationSelector';
 import { WeatherDetails } from './WeatherDetails';
-import { WeatherIcon } from './WeatherIcon';
-import { CardHeader } from '../ui/CardHeader';
-import { CardFooter } from '../ui/CardFooter';
+import { TemperatureDisplay } from './TemperatureDisplay';
+import { ForecastTimeline } from './ForecastTimeline';
 
 export function WeatherCard() {
-  const { data, isLoading: isWeatherLoading, error: weatherError, refresh } = useWeather();
-  const { range, isLoading: isRangeLoading, error: rangeError } = useTemperatureRange();
-
-  const isLoading = isWeatherLoading || isRangeLoading;
-  const error = weatherError || rangeError;
+  const { data: weather, isLoading, error, location } = useWeather();
 
   if (error) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex items-center space-x-3">
-          <AlertCircle className="h-8 w-8 text-red-600" />
+          <AlertCircle className="h-8 w-8 text-red-600 flex-shrink-0" />
           <div>
             <h3 className="text-xl font-bold">Error loading weather data</h3>
             <p className="text-sm text-gray-600 mt-1">Please try again later</p>
@@ -30,72 +24,104 @@ export function WeatherCard() {
     );
   }
 
-  if (isLoading || !data || !data.weather || data.weather.length === 0) {
+  if (isLoading || !weather) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/2" />
-          <div className="space-y-3">
-            <div className="h-24 bg-gray-200 rounded" />
-            <div className="grid grid-cols-2 gap-4">
-              <div className="h-12 bg-gray-200 rounded" />
-              <div className="h-12 bg-gray-200 rounded" />
-            </div>
-          </div>
+        <div className="flex items-center space-x-3">
+          <Loader2 className="h-8 w-8 text-green-600 animate-spin flex-shrink-0" />
+          <h3 className="text-xl font-bold">Loading weather data...</h3>
         </div>
       </div>
     );
   }
 
-  const weatherInfo = data.weather[0];
-  const { humidity, pressure, feels_like } = data.main;
-  const { speed: windSpeed } = data.wind;
-
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
-      <CardHeader
-        title="Weather"
-        subtitle="Current Conditions"
-        icon={Cloud}
-        location={data.name}
-      />
-
-      <div className="mt-6 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <WeatherIcon
-            code={weatherInfo.icon}
-            description={weatherInfo.description}
-          />
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div className="flex items-center space-x-3 mb-4 sm:mb-0">
+          <Cloud className="h-8 w-8 text-green-600 flex-shrink-0" />
           <div>
-            <TemperatureDisplay
-              value={data.main.temp}
-              size="lg"
-            />
-            <div className="text-gray-600 capitalize">
-              {weatherInfo.description}
+            <h3 className="text-xl font-bold">Weather</h3>
+            <div className="flex items-center text-sm text-gray-600 mt-1">
+              <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
+              <LocationSelector 
+                selectedLocation={location}
+                onLocationChange={() => {}} // Will be implemented in the LocationSelector
+              />
             </div>
           </div>
         </div>
         
-        <TemperatureRange
-          min={range.low}
-          max={range.high}
-          isValid={range.isValid}
+        <a
+          href="https://openweathermap.org/api"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center text-sm text-green-600 hover:text-green-700 transition-colors"
+        >
+          <span>Data Source</span>
+          <ExternalLink className="h-4 w-4 ml-1" />
+        </a>
+      </div>
+
+      {/* Current Weather */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+        <motion.div 
+          className="bg-gray-50 rounded-lg p-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <TemperatureDisplay 
+                value={weather.current.temp_c}
+                size="lg"
+              />
+              <p className="text-gray-600 mt-1">
+                Feels like {weather.current.feelslike_c}°C
+              </p>
+            </div>
+            <img
+              src={`https:${weather.current.condition.icon}`}
+              alt={weather.current.condition.text}
+              className="w-16 h-16"
+            />
+          </div>
+          <p className="text-lg text-gray-700 mt-2">
+            {weather.current.condition.text}
+          </p>
+        </motion.div>
+
+        <WeatherDetails
+          humidity={weather.current.humidity}
+          pressure={weather.current.pressure_mb}
+          windSpeed={weather.current.wind_kph}
+          feelsLike={weather.current.feelslike_c}
         />
       </div>
 
-      <WeatherDetails
-        humidity={humidity}
-        pressure={pressure}
-        windSpeed={windSpeed}
-        feelsLike={feels_like}
-      />
+      {/* Forecast Timeline */}
+      <div className="mt-8">
+        <h4 className="text-lg font-semibold mb-4">24-Hour Forecast</h4>
+        <ForecastTimeline forecast={weather.forecast} />
+      </div>
 
-      <CardFooter
-        timestamp={data.dt}
-        onRefresh={refresh}
-        refreshIcon={RefreshCw}
-      />
+      {/* Footer */}
+      <div className="mt-6 pt-4 border-t border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-gray-500 space-y-2 sm:space-y-0">
+          <span>Last updated: {new Date(weather.current.last_updated).toLocaleString()}</span>
+          <div className="flex items-center space-x-4">
+            <a
+              href={`https://www.google.com/maps/@${location.coordinates.lat},${location.coordinates.lon},13z`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-green-600 hover:text-green-700 transition-colors"
+            >
+              View on Map
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
